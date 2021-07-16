@@ -1,33 +1,31 @@
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
+from flask_ngrok import run_with_ngrok
+import pymysql.cursors
 
-
-#inicializa flask con el nombre main.py
+# inicializa flask con el nombre main.py
 app = Flask(__name__)
-
-users = [
-    {
-        "Username": "Admin",
-        "Age": "25",
-    },
-    {
-        "Username": "User 1",
-        "Age": "18",
-    }
-]
-
-@app.route('/users', methods=["GET"])
-def getAllUsers():
-    return jsonify(users), 200
+run_with_ngrok(app)
 
 
-@app.route('/users/<string:username>', methods=["GET"])
-def getUsersByUsername(username):
-    result = next((user for user in users if user["Username"] == username), None)
-    if result is not None:
-        return jsonify(result), 200
-    else:
-        return "User not found", 404
+@app.route('/productos/', methods=['POST'])
+def get_product():
+    if request.method == 'POST':
+        connection = pymysql.connect(host='localhost',
+                                     user='root',
+                                     password='Strouts3313!',
+                                     db='flaskmysql',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        name = request.json['name']
+        try:
+            with connection.cursor() as cursor:
+                # Read a single record
+                sql = "SELECT name, cantidad FROM data_base WHERE name = %s "
+                cursor.execute(sql, (name))
+                result = cursor.fetchall()
+        finally:
+            connection.close()
+            return jsonify(result), 200
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
